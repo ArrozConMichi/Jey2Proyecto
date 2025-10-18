@@ -1,1 +1,0 @@
-Archivo para iniciar la carpeta de backend
