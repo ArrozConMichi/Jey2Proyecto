@@ -283,10 +283,10 @@ DELETE FROM Usuarios;
 DBCC CHECKIDENT ('Usuarios', RESEED, 0);
 
 INSERT INTO Usuarios (nombre, email, password, rol, activo) VALUES
-('Juan Pérez', 'jefe@jey2.com', '$2b$10$IVBou3kwEMksllpagXK7vuJNResMMxcCkTILCvZgpDHc/re4vTNRe', 'Jefe', 1),
-('María González', 'cajera@jey2.com', '$2b$10$IVBou3kwEMksllpagXK7vuJNResMMxcCkTILCvZgpDHc/re4vTNRe', 'Cajero', 1),
-('Carlos Rodríguez', 'ayudante@jey2.com', '$2b$10$IVBou3kwEMksllpagXK7vuJNResMMxcCkTILCvZgpDHc/re4vTNRe', 'Ayudante', 1),
-('Luis Martínez', 'conductor@jey2.com', '$2b$10$IVBou3kwEMksllpagXK7vuJNResMMxcCkTILCvZgpDHc/re4vTNRe', 'Conductor', 1);
+('Juan Pérez', 'jefe@jey2.com', '$2a$10$xqZ1KN5YKhWz7hGZ7hGZ7OzCz7hGZ7hGZ7hGZ7hGZ7hGZ7hGZ7hG', 'Jefe', 1),
+('María González', 'cajera@jey2.com', '$2a$10$xqZ1KN5YKhWz7hGZ7hGZ7OzCz7hGZ7hGZ7hGZ7hGZ7hGZ7hGZ7hG', 'Cajero', 1),
+('Carlos Rodríguez', 'ayudante@jey2.com', '$2a$10$xqZ1KN5YKhWz7hGZ7hGZ7OzCz7hGZ7hGZ7hGZ7hGZ7hGZ7hGZ7hG', 'Ayudante', 1),
+('Luis Martínez', 'conductor@jey2.com', '$2a$10$xqZ1KN5YKhWz7hGZ7hGZ7OzCz7hGZ7hGZ7hGZ7hGZ7hGZ7hGZ7hG', 'Conductor', 1);
 
 -- =============================================
 -- PROVEEDORES INICIALES
@@ -428,7 +428,7 @@ IF OBJECT_ID('vw_InventarioCompleto', 'V') IS NOT NULL
 
 
 CREATE VIEW vw_InventarioCompleto AS
-SELECT 
+SELECT
     p.id AS producto_id,
     p.codigo,
     p.nombre,
@@ -437,12 +437,13 @@ SELECT
     p.precio_venta,
     p.es_perecedero,
     p.stock_minimo,
+    p.proveedor_id,
+    prov.nombre AS proveedor_principal,
     ISNULL(i.cantidad_actual, 0) AS stock_actual,
     i.fecha_vencimiento,
     i.lote,
     i.ubicacion,
-    prov.nombre AS proveedor,
-    CASE 
+    CASE
         WHEN ISNULL(i.cantidad_actual, 0) = 0 THEN 'Sin Stock'
         WHEN ISNULL(i.cantidad_actual, 0) <= p.stock_minimo THEN 'Stock Bajo'
         WHEN i.fecha_vencimiento IS NOT NULL AND DATEDIFF(DAY, GETDATE(), i.fecha_vencimiento) <= 7 THEN 'Por Vencer'
@@ -451,7 +452,8 @@ SELECT
     p.activo
 FROM Productos p
 LEFT JOIN Inventario i ON p.id = i.producto_id
-LEFT JOIN Proveedores prov ON p.proveedor_id = prov.id;
+LEFT JOIN Proveedores prov ON p.proveedor_id = prov.id
+WHERE p.activo = 1;
 
 -- =============================================
 -- VISTA 2: Productos con Stock Crítico
