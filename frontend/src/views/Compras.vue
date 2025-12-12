@@ -252,6 +252,13 @@
                     </tr>
                   </tfoot>
                 </table>
+
+                <!-- Alerta cuando se excede el monto máximo -->
+                <div v-if="totalExcedido" class="alert alert-danger" role="alert">
+                  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                  <strong>¡Atención!</strong> El total de la orden (${{ calcularTotal() }}) excede el monto máximo permitido de <strong>$500.00</strong>.
+                  Por favor ajusta las cantidades o precios.
+                </div>
               </div>
             </div>
           </div>
@@ -264,7 +271,7 @@
               type="button" 
               class="btn btn-primary" 
               @click="crearOrden" 
-              :disabled="creandoOrden || !validarOrden()"
+              :disabled="creandoOrden || !validarOrden() || totalExcedido"
             >
               <span v-if="creandoOrden">
                 <span class="spinner-border spinner-border-sm me-2"></span>
@@ -290,6 +297,9 @@ import Sidebar from '../components/common/Sidebar.vue';
 import comprasService from '../services/compras';
 import inventarioService from '../services/inventario';
 
+// Constante para el monto máximo permitido
+const MONTO_MAXIMO_ORDEN = 500;
+
 export default {
   name: 'Compras',
   components: { Navbar, Sidebar },
@@ -313,6 +323,13 @@ export default {
       const hoy = new Date();
       return hoy.toISOString().split('T')[0];
     });
+
+    // Computed para verificar si el total excede el máximo permitido
+    const totalExcedido = computed(() => {
+      const total = parseFloat(calcularTotal());
+      return total > MONTO_MAXIMO_ORDEN;
+    });
+
 
     const cargarOrdenes = async () => {
       cargandoOrdenes.value = true;
@@ -400,6 +417,12 @@ export default {
         return;
       }
 
+      // Validación del monto máximo
+      if (totalExcedido.value) {
+        alert(`El monto total ($${calcularTotal()}) excede el máximo permitido de $${MONTO_MAXIMO_ORDEN}.00`);
+        return;
+      }
+
       creandoOrden.value = true;
       try {
         await comprasService.crearOrden(nuevaOrden.value);
@@ -462,6 +485,7 @@ export default {
       mostrarModal,
       nuevaOrden,
       fechaMinima,
+      totalExcedido,
       abrirModalNuevaOrden,
       cerrarModal,
       agregarItemOrden,

@@ -1,10 +1,27 @@
 const { success, error } = require('../utils/response');
 const { sql, getConnection } = require('../config/database');
 
+// Constante para el monto máximo permitido
+const MONTO_MAXIMO_ORDEN = 500;
+
 // Crear orden de compra
 const crearOrdenCompra = async (req, res) => {
   try {
     const { proveedor_id, items, fecha_entrega_esperada } = req.body;
+
+    // Validar que existan items
+    if (!items || items.length === 0) {
+      return error(res, 'Debe agregar al menos un producto a la orden', 400);
+    }
+
+    // Calcular el total de la orden
+    const total = items.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0);
+
+    // VALIDACIÓN: Verificar que el total no supere $500
+    if (total > MONTO_MAXIMO_ORDEN) {
+      return error(res, `El monto de la orden ($${total.toFixed(2)}) no puede superar los $${MONTO_MAXIMO_ORDEN}.00`, 400);
+    }
+    
     const pool = await getConnection();
     const transaction = pool.transaction();
     
@@ -12,7 +29,6 @@ const crearOrdenCompra = async (req, res) => {
     
     try {
       const numeroOrden = `OC-${Date.now()}`;
-      const total = items.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0);
       
       // Crear orden
       const ordenResult = await transaction.request()
