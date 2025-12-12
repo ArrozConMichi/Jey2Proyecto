@@ -237,6 +237,34 @@ const eliminarProducto = async (req, res) => {
     }
     
     console.log('📦 Producto a eliminar:', checkProducto.recordset[0]);
+
+    // VALIDACIÓN: Verificar si hay movimientos en los últimos 30 días
+    // EXCLUYENDO el movimiento inicial de "Inventario inicial"
+    const checkMovimientos = await pool.request()
+      .input('producto_id', sql.Int, id)
+      .query(`
+        SELECT COUNT(*) AS total_movimientos,
+                MAX(fecha_movimiento) as ultimo_movimiento
+        FROM MovimientosInventario
+        WHERE producto_id = @producto_id
+          AND fecha_movimiento >= DATEADD(day, -30, GETDATE())
+          AND motivo != 'Inventario inicial'
+        `);
+
+    const { total_movimientos, ultimo_movimiento } = checkMovimientos.recordset[0];
+
+    if (total_movimientos > 0) {
+      const fechaUltimoMov = new Date(ultimo_movimiento).toLocaleDateString('es-PA');
+      console.log('⚠️ Producto tiene movimientos recientes:', total_movimientos, 'movimientos, último:', fechaUltimoMov);
+
+      return error(
+        res,
+        `No se puede eliminar el producto. Ha tenido ${total_movimientos} movimiento(s) en los últimos 30 días. Último movimiento: ${fechaUltimoMov}`,
+        400
+      );
+    }
+
+    console.log('✅ No hay movimientos recientes, procediendo con eliminación');
     
     // Eliminación lógica (desactivar)
     const result = await pool.request()

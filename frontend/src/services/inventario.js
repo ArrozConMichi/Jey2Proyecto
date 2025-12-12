@@ -47,7 +47,13 @@ const inventarioService = {
       const response = await api.delete(`/inventario/productos/${id}`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || error;
+      // Asegurar que el error completo se propague con toda la información
+      const errorObj = {
+        message: error.response?.data?.message || error.message || 'Error al eliminar producto',
+        response: error.response,
+        data: error.response?.data
+      };
+      throw errorObj;
     }
   },
 

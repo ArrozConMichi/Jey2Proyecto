@@ -165,6 +165,43 @@
       @close="cerrarModal"
       @guardar="guardarProducto"
     />
+
+    <!-- Modal de Error Personalizado -->
+    <div class="modal fade" :class="{ show: mostrarModalError }" :style="{ display: mostrarModalError ? 'block' : 'none' }" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              No se puede eliminar el producto
+            </h5>
+            <button type="button" class="btn-close btn-close-white" @click="cerrarModalError"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-warning mb-3">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Restricción de seguridad:</strong> Este producto tiene actividad reciente en el inventario.
+            </div>
+            <p class="mb-3">{{ mensajeError }}</p>
+            <div class="bg-light p-3 rounded">
+              <p class="mb-2"><strong>Razones de seguridad:</strong></p>
+              <ul class="mb-0">
+                <li>Protege la integridad de los registros históricos</li>
+                <li>Previene eliminación accidental de productos activos</li>
+                <li>Mantiene la trazabilidad de movimientos</li>
+              </ul>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="cerrarModalError">
+              <i class="bi bi-x-circle me-2"></i>
+              Entendido
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-backdrop fade" :class="{ show: mostrarModalError }" v-if="mostrarModalError"></div>
   </div>
 </template>
 
@@ -192,6 +229,8 @@ export default {
     const filtroEstado = ref('');
     const mostrarModal = ref(false);
     const productoSeleccionado = ref(null);
+    const mostrarModalError = ref(false);
+    const mensajeError = ref('');
 
     // Cargar productos
     const cargarProductos = async () => {
@@ -333,8 +372,24 @@ export default {
         await cargarProductos();
       } catch (error) {
         console.error('Error al eliminar producto:', error);
-        alert('Error al eliminar producto: ' + (error.message || 'Error desconocido'));
+
+        // Verificar si es el error específico de movimientos recientes
+        const errorMsg = error.response?.data?.message || error.message || 'Error desconocido';
+
+        if (errorMsg.includes('movimiento') || errorMsg.includes('últimos 30 días')) {
+          // Mostrar modal personalizado para este error
+          mensajeError.value = errorMsg;
+          mostrarModalError.value = true;
+        } else {
+          // Para otros errores, mostrar alert normal
+          alert('Error al eliminar producto: ' + errorMsg);
+        }
       }
+    };
+
+    const cerrarModalError = () => {
+      mostrarModalError.value = false;
+      mensajeError.value = '';
     };
 
     onMounted(() => {
@@ -351,6 +406,8 @@ export default {
       filtroEstado,
       mostrarModal,
       productoSeleccionado,
+      mostrarModalError,
+      mensajeError,
       contarStockCritico,
       contarPorVencer,
       filtrarProductos,
@@ -361,7 +418,8 @@ export default {
       editarProducto,
       cerrarModal,
       guardarProducto,
-      eliminarProducto
+      eliminarProducto,
+      cerrarModalError
     };
   }
 };
